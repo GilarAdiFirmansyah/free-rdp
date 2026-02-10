@@ -1,0 +1,37 @@
+name: RDP
+on: workflow_dispatch
+jobs:
+  provisioning:
+    runs-on: windows-latest
+    steps:
+      - name: Identity_Forge
+        shell: powershell
+        run: |
+          $U = -join ((97..122) | Get-Random -Count 8 | % {[char]$_})
+          $P = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 16 | % {[char]$_})
+          net user $U $P /add
+          net localgroup administrators $U /add
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          reg add "HKLM\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f
+          Write-Output "---[ AUTH_DATA ]---"
+          Write-Output "USER: $U"
+          Write-Output "PASS: $P"
+          Write-Output "-------------------"
+      - name: Network_Mesh
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "ts.exe"
+          Start-Process -FilePath "ts.exe" -ArgumentList "/quiet" -Wait
+          & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=RDP
+      - name: IP_Discovery
+        shell: powershell
+        run: |
+          $IP = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
+          Write-Output "TARGET_IP: $IP"
+      - name: Session_Persistence
+        shell: powershell
+        run: |
+          while($true) {
+            Start-Sleep -Seconds 300
+          }
