@@ -32,6 +32,8 @@ jobs:
       - name: Session_Persistence
         shell: powershell
         run: |
-          while($true) {
-            Start-Sleep -Seconds 300
+          $limit = 350
+          for($i=0; $i -lt $limit; $i++) {
+            Write-Host "Server Active - Uptime: $i minutes"
+            Start-Sleep -Seconds 60
           }
